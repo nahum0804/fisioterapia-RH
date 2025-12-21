@@ -6,3 +6,8 @@ pytest==8.3.2
 
 
 gunicorn==22.0.0
+
+
+Flask-SQLAlchemy
+psycopg2-binary
+python-dotenv
