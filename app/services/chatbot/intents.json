@@ -1,0 +1,58 @@
+{
+  "intents": [
+    {
+      "tag": "saludo",
+      "patterns": ["Hola", "Buenas", "Que tal", "Informacion", "Buenos dias", "Buenas tardes"],
+      "responses": ["¡Hola! Bienvenido a Fisioterapia RH en Ciudad Quesada. ¿En qué puedo ayudarte hoy?"]
+    },
+    {
+      "tag": "servicios_general",
+      "patterns": ["¿Que servicios ofrecen?", "terapias", "que hacen", "lista de servicios", "catalogo"],
+      "responses": ["Ofrecemos servicios integrales: Lesiones deportivas, Patologías neurológicas y osteoarticulares, Rehabilitación Post y Pre operatoria, Fisioterapia para el estrés, postparto y ejercicios terapéuticos."]
+    },
+    {
+      "tag": "tratamientos_especificos",
+      "patterns": [
+        "atienden postparto", "fracturas", "tengo estres", "dolor", "inflamacion", 
+        "lesion deportiva", "neurologico", "huesos", "muscular", "ejercicios", 
+        "esguince", "post operatorio", "operacion", "pre operatorio", "lesion"
+      ],
+      "responses": ["¡Sí, claro que lo atendemos! Somos especialistas en lesiones musculoesqueléticas, fracturas, manejo del dolor e inflamación, así como procesos de postparto y estrés. ¿Te gustaría agendar una cita para valoración?"]
+    },
+    {
+      "tag": "ubicacion",
+      "patterns": ["Donde estan", "ubicacion", "direccion", "donde quedan", "ciudad quesada", "san carlos", "como llegar"],
+      "responses": ["Estamos ubicados en Ciudad Quesada, San Carlos. Nuestro consultorio se encuentra dentro de las instalaciones del Hogar de Ancianos San Vicente de Paul."]
+    },
+    {
+      "tag": "horario",
+      "patterns": ["horario", "a que hora abren", "cuando atienden", "dias de atencion"],
+      "responses": ["Nuestro horario de atención es de lunes a viernes, de 1:00 p.m. a 7:00 p.m."]
+    },
+    {
+      "tag": "precio",
+      "patterns": ["precio", "cuanto cuesta", "costo", "valor de la consulta", "tarifas"],
+      "responses": ["El costo de la consulta es de 21,000 colones."]
+    },
+    {
+      "tag": "pago",
+      "patterns": ["metodos de pago", "aceptan tarjeta", "sinpe", "como se paga", "efectivo"],
+      "responses": ["Aceptamos pagos mediante SINPE Móvil y dinero en efectivo."]
+    },
+    {
+      "tag": "contacto",
+      "patterns": ["telefono", "contacto", "correo", "whatsapp", "facebook", "instagram", "redes sociales"],
+      "responses": ["Para contacto directo puedes llamarnos al +506 8748-4854 o escribirnos por correo electrónico. (Por el momento no gestionamos citas vía redes sociales)."]
+    },
+    {
+      "tag": "agendar_cita",
+      "patterns": ["como saco cita", "quiero una cita", "agendar", "sacar espacio", "reservar"],
+      "responses": ["Para agendar: 1. Crea tu cuenta en nuestra web. 2. Ve al apartado de 'Citas' y presiona el botón '+'. 3. Indica 3 horas en las que tengas disponibilidad. La terapeuta te asignará el mejor horario y te notificará por correo o WhatsApp."]
+    },
+    {
+      "tag": "despedida",
+      "patterns": ["Gracias", "Adios", "Chao", "Hasta luego", "ok gracias"],
+      "responses": ["Fue un gusto informarte. Recuerda que estamos en el Hogar de Ancianos de Ciudad Quesada. ¡Que tengas un lindo día!"]
+    }
+  ]
+}
