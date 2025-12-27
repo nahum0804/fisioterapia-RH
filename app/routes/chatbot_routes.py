@@ -8,6 +8,15 @@ bp = Blueprint("chatbot", __name__)
 def chatbot_message():
     payload = request.get_json(force=True) or {}
     message = payload.get("message", "")
+    context = payload.get("context")  # <-- nuevo
 
-    response = ChatbotService.get_best_response(message)
-    return jsonify({"message": message, "response": response}), 200
+    result = ChatbotService.reply(message=message, context=context)
+
+    return jsonify({
+        "message": message,
+        "response": result["response"],
+        "context": result["next_context"],  # <-- devolvemos el siguiente contexto
+        # opcional para debug (podés quitarlo)
+        "tag": result.get("tag"),
+        "score": result.get("score")
+    }), 200

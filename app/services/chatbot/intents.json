@@ -2,57 +2,278 @@
   "intents": [
     {
       "tag": "saludo",
-      "patterns": ["Hola", "Buenas", "Que tal", "Informacion", "Buenos dias", "Buenas tardes"],
-      "responses": ["¡Hola! Bienvenido a Fisioterapia RH en Ciudad Quesada. ¿En qué puedo ayudarte hoy?"]
+      "patterns": [
+        "hola",
+        "buenas",
+        "que tal",
+        "buenos dias",
+        "buenas tardes",
+        "buenas noches",
+        "hey",
+        "holi"
+      ],
+      "responses": [
+        "¡Hola! Bienvenido a Fisioterapia RH en Ciudad Quesada. ¿En qué puedo ayudarte hoy?"
+      ]
+    },
+    {
+      "tag": "ayuda",
+      "patterns": [
+        "ayuda",
+        "que puedes hacer",
+        "que sabes hacer",
+        "como funcionas",
+        "opciones",
+        "menu",
+        "que me ofreces",
+        "que opciones hay",
+        "que puedo preguntar"
+      ],
+      "responses": [
+        "Puedo ayudarte con: servicios y tratamientos, ubicación, horario, precio, métodos de pago, contacto y cómo agendar una cita. ¿Qué te gustaría saber?"
+      ]
+    },
+    {
+      "tag": "info_general",
+      "patterns": [
+        "informacion",
+        "quiero informacion",
+        "me das informacion",
+        "me das informacion del servicio",
+        "informacion del servicio",
+        "informacion de la clinica",
+        "informacion del consultorio",
+        "que informacion me puedes dar",
+        "quiero saber sobre ustedes",
+        "cuentame sobre la clinica",
+        "cuentame sobre ustedes"
+      ],
+      "responses": [
+        "Con gusto 🙂 Puedo ayudarte con: servicios y tratamientos, ubicación, horario, precios, métodos de pago, contacto y cómo agendar una cita. ¿Qué te interesa saber?"
+      ]
     },
     {
       "tag": "servicios_general",
-      "patterns": ["¿Que servicios ofrecen?", "terapias", "que hacen", "lista de servicios", "catalogo"],
-      "responses": ["Ofrecemos servicios integrales: Lesiones deportivas, Patologías neurológicas y osteoarticulares, Rehabilitación Post y Pre operatoria, Fisioterapia para el estrés, postparto y ejercicios terapéuticos."]
+      "patterns": [
+        "que servicios ofrecen",
+        "servicios",
+        "terapias",
+        "que hacen",
+        "lista de servicios",
+        "catalogo",
+        "que tratan",
+        "que tipos de terapia tienen",
+        "trabajan rehabilitacion",
+        "rehabilitacion",
+        "fisioterapia",
+        "que terapias tienen"
+      ],
+      "responses": [
+        "Ofrecemos servicios integrales: Lesiones deportivas, Patologías neurológicas y osteoarticulares, Rehabilitación post y pre operatoria, Fisioterapia para el estrés, postparto y ejercicios terapéuticos."
+      ]
     },
     {
       "tag": "tratamientos_especificos",
       "patterns": [
-        "atienden postparto", "fracturas", "tengo estres", "dolor", "inflamacion", 
-        "lesion deportiva", "neurologico", "huesos", "muscular", "ejercicios", 
-        "esguince", "post operatorio", "operacion", "pre operatorio", "lesion"
+        "atienden lesiones",
+        "atienden lesion",
+        "atienden lesiones deportivas",
+        "atienden lesiones?",
+        "lesiones",
+        "lesion deportiva",
+        "dolor",
+        "me duele",
+        "tengo dolor",
+        "inflamacion",
+        "fracturas",
+        "esguince",
+        "contractura",
+        "muscular",
+        "huesos",
+        "neurologico",
+        "post operatorio",
+        "pre operatorio",
+        "operacion",
+        "cirugia",
+        "postparto",
+        "tengo estres",
+        "estres",
+        "ansiedad",
+        "ejercicios terapeuticos",
+        "ejercicios",
+        "rehabilitacion de rodilla",
+        "dolor de espalda",
+        "dolor de cuello",
+        "dolor de rodilla",
+        "dolor de hombro"
       ],
-      "responses": ["¡Sí, claro que lo atendemos! Somos especialistas en lesiones musculoesqueléticas, fracturas, manejo del dolor e inflamación, así como procesos de postparto y estrés. ¿Te gustaría agendar una cita para valoración?"]
+      "responses": [
+        "¡Sí, claro que lo atendemos! Somos especialistas en lesiones musculoesqueléticas, fracturas, manejo del dolor e inflamación, así como procesos de postparto y estrés. ¿Te gustaría agendar una cita para valoración?"
+      ]
     },
     {
       "tag": "ubicacion",
-      "patterns": ["Donde estan", "ubicacion", "direccion", "donde quedan", "ciudad quesada", "san carlos", "como llegar"],
-      "responses": ["Estamos ubicados en Ciudad Quesada, San Carlos. Nuestro consultorio se encuentra dentro de las instalaciones del Hogar de Ancianos San Vicente de Paul."]
+      "patterns": [
+        "donde estan",
+        "ubicacion",
+        "direccion",
+        "donde quedan",
+        "ciudad quesada",
+        "san carlos",
+        "como llegar",
+        "en que lugar estan",
+        "como llego",
+        "lugar",
+        "ubicados donde"
+      ],
+      "responses": [
+        "Estamos ubicados en Ciudad Quesada, San Carlos. Nuestro consultorio se encuentra dentro de las instalaciones del Hogar de Ancianos San Vicente de Paul."
+      ]
     },
     {
       "tag": "horario",
-      "patterns": ["horario", "a que hora abren", "cuando atienden", "dias de atencion"],
-      "responses": ["Nuestro horario de atención es de lunes a viernes, de 1:00 p.m. a 7:00 p.m."]
+      "patterns": [
+        "horario",
+        "a que hora abren",
+        "a que hora cierran",
+        "cuando atienden",
+        "dias de atencion",
+        "atienden fines de semana",
+        "que dias atienden",
+        "atienden sabados",
+        "atienden domingos",
+        "abren hoy",
+        "estan abiertos hoy"
+      ],
+      "responses": [
+        "Nuestro horario de atención es de lunes a viernes, de 1:00 p.m. a 7:00 p.m."
+      ]
     },
     {
       "tag": "precio",
-      "patterns": ["precio", "cuanto cuesta", "costo", "valor de la consulta", "tarifas"],
-      "responses": ["El costo de la consulta es de 21,000 colones."]
+      "patterns": [
+        "precio",
+        "cuanto cuesta",
+        "costo",
+        "valor de la consulta",
+        "tarifas",
+        "cuanto vale la cita",
+        "cuanto vale",
+        "cuanto cobran",
+        "precio de la consulta"
+      ],
+      "responses": [
+        "El costo de la consulta es de 21,000 colones."
+      ]
     },
     {
       "tag": "pago",
-      "patterns": ["metodos de pago", "aceptan tarjeta", "sinpe", "como se paga", "efectivo"],
-      "responses": ["Aceptamos pagos mediante SINPE Móvil y dinero en efectivo."]
+      "patterns": [
+        "metodos de pago",
+        "aceptan tarjeta",
+        "tarjeta",
+        "sinpe",
+        "como se paga",
+        "efectivo",
+        "pago",
+        "puedo pagar con sinpe",
+        "aceptan sinpe",
+        "se puede pagar en efectivo"
+      ],
+      "responses": [
+        "Aceptamos pagos mediante SINPE Móvil y dinero en efectivo."
+      ]
     },
     {
       "tag": "contacto",
-      "patterns": ["telefono", "contacto", "correo", "whatsapp", "facebook", "instagram", "redes sociales"],
-      "responses": ["Para contacto directo puedes llamarnos al +506 8748-4854 o escribirnos por correo electrónico. (Por el momento no gestionamos citas vía redes sociales)."]
+      "patterns": [
+        "telefono",
+        "contacto",
+        "correo",
+        "whatsapp",
+        "numero",
+        "como los contacto",
+        "como llamarlos",
+        "numero de telefono",
+        "como les escribo"
+      ],
+      "responses": [
+        "Para contacto directo puedes llamarnos al +506 8748-4854 o escribirnos por correo electrónico. (Por el momento no gestionamos citas vía redes sociales)."
+      ]
     },
     {
       "tag": "agendar_cita",
-      "patterns": ["como saco cita", "quiero una cita", "agendar", "sacar espacio", "reservar"],
-      "responses": ["Para agendar: 1. Crea tu cuenta en nuestra web. 2. Ve al apartado de 'Citas' y presiona el botón '+'. 3. Indica 3 horas en las que tengas disponibilidad. La terapeuta te asignará el mejor horario y te notificará por correo o WhatsApp."]
+      "patterns": [
+        "como saco cita",
+        "quiero una cita",
+        "agendar",
+        "sacar espacio",
+        "reservar",
+        "agendar cita",
+        "quiero agendar una cita",
+        "quiero sacar una cita",
+        "quiero una valoracion",
+        "quiero valoracion",
+        "como agendo una cita",
+        "como reservo"
+      ],
+      "responses": [
+        "Para agendar: 1) Crea tu cuenta en nuestra web. 2) Ve al apartado de 'Citas' y presiona el botón '+'. 3) Indica 3 horas en las que tengas disponibilidad. La terapeuta te asignará el mejor horario y te notificará por correo o WhatsApp."
+      ]
+    },
+    {
+      "tag": "afirmacion",
+      "patterns": [
+        "si",
+        "sí",
+        "claro",
+        "ok",
+        "okay",
+        "dale",
+        "de una",
+        "perfecto",
+        "ajá",
+        "aja",
+        "me parece",
+        "hagamoslo",
+        "vamos",
+        "quiero"
+      ],
+      "responses": [
+        "¡Perfecto! Para agendar: 1) Crea tu cuenta en nuestra web. 2) Ve al apartado de 'Citas' y presiona el botón '+'. 3) Indica 3 horas en las que tengas disponibilidad. La terapeuta te asignará el mejor horario y te notificará por correo o WhatsApp."
+      ]
+    },
+    {
+      "tag": "negacion",
+      "patterns": [
+        "no",
+        "nop",
+        "no gracias",
+        "por ahora no",
+        "despues",
+        "después",
+        "luego",
+        "ahorita no",
+        "tal vez luego"
+      ],
+      "responses": [
+        "Entendido 🙂 Si luego querés agendar o consultar algo, aquí estoy. ¿Te ayudo con horario, precio, ubicación o contacto?"
+      ]
     },
     {
       "tag": "despedida",
-      "patterns": ["Gracias", "Adios", "Chao", "Hasta luego", "ok gracias"],
-      "responses": ["Fue un gusto informarte. Recuerda que estamos en el Hogar de Ancianos de Ciudad Quesada. ¡Que tengas un lindo día!"]
+      "patterns": [
+        "gracias",
+        "adios",
+        "chao",
+        "hasta luego",
+        "ok gracias",
+        "pura vida",
+        "muchas gracias"
+      ],
+      "responses": [
+        "Fue un gusto informarte. Recuerda que estamos en el Hogar de Ancianos de Ciudad Quesada. ¡Que tengas un lindo día!"
+      ]
     }
   ]
 }
