@@ -52,3 +52,30 @@ def me():
         return jsonify({"error": "Usuario no encontrado"}), 404
     return jsonify({"user": user}), 200
 
+@bp.put("/me")
+@auth_required
+def update_me():
+    data = request.get_json(silent=True) or {}
+    try:
+        user = AuthService.update_profile(
+            user_id=g.jwt["sub"],
+            full_name=data.get("full_name", ""),
+            email=data.get("email", ""),
+        )
+        return jsonify({"message": "Perfil actualizado", "user": user}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@bp.put("/me/password")
+@auth_required
+def change_password():
+    data = request.get_json(silent=True) or {}
+    try:
+        AuthService.change_password(
+            user_id=g.jwt["sub"],
+            current_password=data.get("current_password", ""),
+            new_password=data.get("new_password", ""),
+        )
+        return jsonify({"message": "Contraseña actualizada"}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
