@@ -14,3 +14,4 @@ python-dotenv
 
 PyJWT
 Werkzeug
+flask_cors

@@ -2,12 +2,13 @@ from datetime import datetime
 from ..extensions import db
 from ..models import Appointment, AppointmentEvent
 
+
 class AppointmentsService:
+
     @staticmethod
     def request_appointment(payload: dict) -> Appointment:
         appt = Appointment(
-            booked_by_user_id=payload["booked_by_user_id"],
-            patient_id=payload["patient_id"],
+            user_id=payload["user_id"], 
             description=payload["description"],
             comment=payload.get("comment"),
             considerations=payload.get("considerations"),
@@ -15,14 +16,17 @@ class AppointmentsService:
             requested_end=payload.get("requested_end"),
             status="requested",
         )
-        db.session.add(appt)
-        db.session.flush()  
 
-        db.session.add(AppointmentEvent(
-            appointment_id=appt.id,
-            event_type="created",
-            note="Appointment requested by user",
-        ))
+        db.session.add(appt)
+        db.session.flush()  # asegura appt.id
+
+        db.session.add(
+            AppointmentEvent(
+                appointment_id=appt.id,
+                event_type="created",
+                note="Appointment requested by patient",
+            )
+        )
 
         db.session.commit()
         return appt
@@ -37,38 +41,48 @@ class AppointmentsService:
         appt.scheduled_end = scheduled_end
         appt.updated_at = datetime.utcnow()
 
-        db.session.add(AppointmentEvent(
-            appointment_id=appt.id,
-            event_type="status_changed",
-            old_value=old_status,
-            new_value="confirmed",
-            note="Confirmed by therapist/admin",
-        ))
+        db.session.add(
+            AppointmentEvent(
+                appointment_id=appt.id,
+                event_type="status_changed",
+                old_value=old_status,
+                new_value="confirmed",
+                note="Confirmed by therapist/admin",
+            )
+        )
+
         db.session.commit()
         return appt
 
     @staticmethod
     def mark_paid(appointment_id) -> Appointment:
         appt = Appointment.query.get_or_404(appointment_id)
+
         appt.is_paid = True
         appt.paid_at = datetime.utcnow()
         appt.updated_at = datetime.utcnow()
 
-        db.session.add(AppointmentEvent(
-            appointment_id=appt.id,
-            event_type="payment_marked",
-            old_value="unpaid",
-            new_value="paid",
-            note="Marked as paid manually by therapist/admin",
-        ))
+        db.session.add(
+            AppointmentEvent(
+                appointment_id=appt.id,
+                event_type="payment_marked",
+                old_value="unpaid",
+                new_value="paid",
+                note="Marked as paid manually by therapist/admin",
+            )
+        )
+
         db.session.commit()
         return appt
 
     @staticmethod
-    def list_appointments(status: str | None = None, booked_by_user_id: int | None = None) -> list[Appointment]:
+    def list_appointments(status=None, user_id=None):
         q = Appointment.query
+
         if status:
             q = q.filter(Appointment.status == status)
-        if booked_by_user_id is not None:
-            q = q.filter(Appointment.booked_by_user_id == booked_by_user_id)
+
+        if user_id:
+            q = q.filter(Appointment.user_id == user_id)
+
         return q.order_by(Appointment.created_at.desc()).all()

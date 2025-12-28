@@ -8,8 +8,9 @@ class Appointment(db.Model):
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    booked_by_user_id = db.Column(db.BigInteger, nullable=False)
-    patient_id = db.Column(UUID(as_uuid=True), db.ForeignKey("patients.id", ondelete="RESTRICT"), nullable=False)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey("users.id"), nullable=False)
+
+    user = db.relationship("User", backref="appointments", lazy=True)
 
     description = db.Column(db.Text, nullable=False)
     comment = db.Column(db.Text, nullable=True)
@@ -29,14 +30,10 @@ class Appointment(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
-    patient = db.relationship("Patient", lazy="joined")
-
     def to_dict(self):
         return {
             "id": str(self.id),
-            "booked_by_user_id": self.booked_by_user_id,
-            "patient_id": str(self.patient_id),
-            "patient": self.patient.to_dict() if self.patient else None,
+            "user_id": str(self.user_id),
             "description": self.description,
             "comment": self.comment,
             "considerations": self.considerations,
@@ -49,4 +46,7 @@ class Appointment(db.Model):
             "paid_at": self.paid_at.isoformat() if self.paid_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "user": {
+                "full_name": self.user.full_name
+            } if self.user else None,
         }
