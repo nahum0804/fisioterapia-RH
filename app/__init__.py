@@ -29,10 +29,12 @@ def create_app():
     from .routes.auth_routes import bp as auth_bp
     from .routes.site_routes import site_bp
     from .routes.chatbot_routes import bp as chatbot_bp
+    from .routes.planner_routes import bp as planner_bp
 
 
     app.register_blueprint(patients_bp, url_prefix="/api/patients")
     app.register_blueprint(appointments_bp, url_prefix="/api/appointments")
+    app.register_blueprint(planner_bp, url_prefix="/api/planner")
     app.register_blueprint(chatbot_bp, url_prefix="/chatbot") 
     app.register_blueprint(auth_bp)
     app.register_blueprint(site_bp)

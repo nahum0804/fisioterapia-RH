@@ -12,9 +12,7 @@ class Appointment(db.Model):
 
     user = db.relationship("User", backref="appointments", lazy=True)
 
-    description = db.Column(db.Text, nullable=False)
     comment = db.Column(db.Text, nullable=True)
-    considerations = db.Column(db.Text, nullable=True)
 
     requested_start = db.Column(db.DateTime(timezone=True), nullable=True)
     requested_end = db.Column(db.DateTime(timezone=True), nullable=True)
@@ -34,9 +32,7 @@ class Appointment(db.Model):
         return {
             "id": str(self.id),
             "user_id": str(self.user_id),
-            "description": self.description,
             "comment": self.comment,
-            "considerations": self.considerations,
             "requested_start": self.requested_start.isoformat() if self.requested_start else None,
             "requested_end": self.requested_end.isoformat() if self.requested_end else None,
             "scheduled_start": self.scheduled_start.isoformat() if self.scheduled_start else None,

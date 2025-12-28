@@ -9,9 +9,7 @@ class AppointmentsService:
     def request_appointment(payload: dict) -> Appointment:
         appt = Appointment(
             user_id=payload["user_id"], 
-            description=payload["description"],
             comment=payload.get("comment"),
-            considerations=payload.get("considerations"),
             requested_start=payload.get("requested_start"),
             requested_end=payload.get("requested_end"),
             status="requested",
