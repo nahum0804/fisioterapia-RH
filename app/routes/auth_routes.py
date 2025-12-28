@@ -79,3 +79,39 @@ def change_password():
         return jsonify({"message": "Contraseña actualizada"}), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+    
+import traceback
+
+@bp.post("/forgot-password")
+def forgot_password():
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+
+    try:
+        if email:
+            AuthService.forgot_password(email=email)
+
+        return jsonify({
+            "message": "Si el correo está registrado, te enviaremos un enlace para restablecer tu contraseña."
+        }), 200
+
+    except Exception as e:
+        print("ERROR forgot-password:", repr(e))
+        traceback.print_exc()
+
+        # En desarrollo, devolvé el error para arreglarlo rápido:
+        return jsonify({"error": "Fallo enviando correo", "detail": str(e)}), 500
+
+    
+@bp.post("/reset-password")
+def reset_password():
+    data = request.get_json(silent=True) or {}
+    try:
+        AuthService.reset_password(
+            email=data.get("email", ""),
+            token=data.get("token", ""),
+            new_password=data.get("new_password", ""),
+        )
+        return jsonify({"message": "Contraseña actualizada correctamente"}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400

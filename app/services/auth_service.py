@@ -1,8 +1,12 @@
+import os
+import secrets
+import hashlib
+from datetime import datetime, timedelta, timezone
+
 from werkzeug.security import generate_password_hash, check_password_hash
 from psycopg2.extras import RealDictCursor
-
 from app.db import get_connection
-
+from app.services.email_service import send_email
 
 class AuthService:
     @staticmethod
@@ -170,6 +174,139 @@ class AuthService:
                     WHERE id = %s;
                     """,
                     (new_hash, user_id),
+                )
+                conn.commit()
+        finally:
+            conn.close()
+
+    @staticmethod
+    def _hash_reset_token(raw_token: str) -> str:
+        pepper = os.getenv("RESET_TOKEN_PEPPER", "")
+        return hashlib.sha256((raw_token + pepper).encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def forgot_password(email: str) -> None:
+        if not email:
+            raise ValueError("email es requerido")
+
+        email = email.strip().lower()
+
+        conn = get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    "SELECT id, email, full_name, is_active FROM users WHERE email = %s;",
+                    (email,),
+                )
+                user = cur.fetchone()
+
+                if not user or not user["is_active"]:
+                    return
+
+                raw_token = secrets.token_urlsafe(32)
+                token_hash = AuthService._hash_reset_token(raw_token)
+
+                expires_minutes = int(os.getenv("RESET_TOKEN_EXPIRES_MINUTES", "30"))
+                expires_at = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
+
+                cur.execute(
+                    """
+                    UPDATE users
+                    SET password_reset_token_hash = %s,
+                        password_reset_expires_at = %s,
+                        updated_at = NOW()
+                    WHERE id = %s;
+                    """,
+                    (token_hash, expires_at, str(user["id"])),
+                )
+                conn.commit()
+
+                frontend = os.getenv("FRONTEND_URL", "http://localhost:5173")
+                reset_link = f"{frontend}/reset-password?token={raw_token}&email={email}"
+
+                subject = "Recuperación de contraseña — Fisioterapia RH"
+
+                html = f"""
+                <div style="font-family:Arial, sans-serif; line-height:1.5;">
+                  <h2>Fisioterapia RH</h2>
+                  <p>Hola {user.get("full_name", "")},</p>
+                  <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta.</p>
+                  <p>Si fuiste tú, por favor accedé al siguiente enlace seguro para crear una nueva contraseña:</p>
+                  <p><a href="{reset_link}" target="_blank" rel="noopener noreferrer">Restablecer contraseña</a></p>
+                  <p>Este enlace expira en <b>{expires_minutes} minutos</b>.</p>
+                  <p>Si no solicitaste este cambio, podés ignorar este correo. Tu contraseña no será modificada.</p>
+                  <hr/>
+                  <p style="font-size:12px; color:#666;">Mensaje automático — no respondas a este correo.</p>
+                </div>
+                """
+
+                text = (
+                    "Fisioterapia RH\n\n"
+                    "Recibimos una solicitud para restablecer tu contraseña.\n"
+                    f"Usa este enlace seguro (expira en {expires_minutes} minutos):\n{reset_link}\n\n"
+                    "Si no fuiste tú, ignorá este correo.\n"
+                )
+
+                send_email(to_email=email, subject=subject, html_body=html, text_body=text)
+
+        finally:
+            conn.close()
+
+    @staticmethod
+    def reset_password(email: str, token: str, new_password: str) -> None:
+        if not email or not token or not new_password:
+            raise ValueError("email, token y new_password son requeridos")
+
+        email = email.strip().lower()
+
+        if len(new_password) < 8:
+            raise ValueError("La nueva contraseña debe tener al menos 8 caracteres")
+
+        token_hash = AuthService._hash_reset_token(token)
+
+        conn = get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    """
+                    SELECT id, password_hash, password_reset_token_hash, password_reset_expires_at, is_active
+                    FROM users
+                    WHERE email = %s;
+                    """,
+                    (email,),
+                )
+                user = cur.fetchone()
+                if not user or not user["is_active"]:
+                    raise ValueError("Token inválido o expirado")
+
+                if not user["password_reset_token_hash"] or not user["password_reset_expires_at"]:
+                    raise ValueError("Token inválido o expirado")
+
+                now = datetime.now(timezone.utc)
+                expires_at = user["password_reset_expires_at"]
+                # psycopg2 normalmente trae aware datetime si la columna es timestamptz
+                if expires_at < now:
+                    raise ValueError("Token inválido o expirado")
+
+                if user["password_reset_token_hash"] != token_hash:
+                    raise ValueError("Token inválido o expirado")
+
+                # regla extra: no permitir que sea la misma que la anterior
+                if check_password_hash(user["password_hash"], new_password):
+                    raise ValueError("La nueva contraseña no puede ser igual a la anterior")
+
+                new_hash = generate_password_hash(new_password)
+
+                cur.execute(
+                    """
+                    UPDATE users
+                    SET password_hash = %s,
+                        password_reset_token_hash = NULL,
+                        password_reset_expires_at = NULL,
+                        updated_at = NOW()
+                    WHERE id = %s;
+                    """,
+                    (new_hash, str(user["id"])),
                 )
                 conn.commit()
         finally:
