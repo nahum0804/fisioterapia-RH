@@ -1,15 +1,20 @@
 from datetime import datetime
 from ..extensions import db
 from ..models import Appointment, AppointmentEvent
-
+import json
+from app.utils.appointments_fields import pack_fields, unpack_fields
 
 class AppointmentsService:
 
     @staticmethod
     def request_appointment(payload: dict) -> Appointment:
         appt = Appointment(
-            user_id=payload["user_id"], 
-            comment=payload.get("comment"),
+            user_id=payload["user_id"],
+            comment=pack_fields(
+                payload["description"],
+                payload.get("comment"),
+                payload.get("considerations")
+            ),
             requested_start=payload.get("requested_start"),
             requested_end=payload.get("requested_end"),
             status="requested",
@@ -84,3 +89,32 @@ class AppointmentsService:
             q = q.filter(Appointment.user_id == user_id)
 
         return q.order_by(Appointment.created_at.desc()).all()
+    
+    @staticmethod
+    def admin_update(appointment_id, payload: dict) -> Appointment:
+        appt = Appointment.query.get_or_404(appointment_id)
+
+        fields = unpack_fields(appt.comment)
+
+        if "description" in payload:
+            fields["description"] = payload.get("description") or ""
+        if "comment" in payload:
+            fields["comment"] = payload.get("comment")
+        if "considerations" in payload:
+            fields["considerations"] = payload.get("considerations")
+
+        appt.comment = pack_fields(fields["description"], fields["comment"], fields["considerations"])
+
+        for k in ["requested_start","requested_end","scheduled_start","scheduled_end"]:
+            if k in payload:
+                setattr(appt, k, payload[k])
+
+        appt.updated_at = datetime.utcnow()
+        db.session.commit()
+        return appt
+    
+    @staticmethod
+    def delete_appointment(appointment_id) -> None:
+        appt = Appointment.query.get_or_404(appointment_id)
+        db.session.delete(appt)
+        db.session.commit()

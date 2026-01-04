@@ -1,7 +1,9 @@
+from dataclasses import fields
 import uuid
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import UUID
 from ..extensions import db
+from app.utils.appointments_fields import pack_fields, unpack_fields
 
 class Appointment(db.Model):
     __tablename__ = "appointments"
@@ -32,7 +34,9 @@ class Appointment(db.Model):
         return {
             "id": str(self.id),
             "user_id": str(self.user_id),
-            "comment": self.comment,
+            "description": self.comment.split("\n")[0] if self.comment else "",
+            "comment": self.comment.split("\n")[1] if self.comment and len(self.comment.split("\n")) > 1 else None,
+            "considerations": self.comment.split("\n")[2] if self.comment and len(self.comment.split("\n")) > 2 else None,
             "requested_start": self.requested_start.isoformat() if self.requested_start else None,
             "requested_end": self.requested_end.isoformat() if self.requested_end else None,
             "scheduled_start": self.scheduled_start.isoformat() if self.scheduled_start else None,

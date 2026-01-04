@@ -21,3 +21,12 @@ def create_access_token(user_id: str, email: str, role: str) -> str:
 
 def decode_token(token: str) -> dict:
     return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+
+def admin_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        role = getattr(g, "role", None) or (g.jwt.get("role") if hasattr(g, "jwt") else None)
+        if role != "admin":
+            return jsonify({"error": "No autorizado (admin requerido)"}), 403
+        return fn(*args, **kwargs)
+    return wrapper

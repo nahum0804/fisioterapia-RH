@@ -22,6 +22,22 @@ def auth_required(fn):
 
         # Guardamos info del usuario en g (global request context)
         g.jwt = payload
+        g.user_id = payload.get("sub")
+        g.email = payload.get("email")
+        g.role = payload.get("role")
+
+        if not g.user_id or not g.role:
+            return jsonify({"error": "Token inválido (faltan claims)"}), 401
+
         return fn(*args, **kwargs)
 
+    return wrapper
+
+def admin_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        role = getattr(g, "role", None) or (g.jwt.get("role") if hasattr(g, "jwt") else None)
+        if role != "admin":
+            return jsonify({"error": "No autorizado (admin requerido)"}), 403
+        return fn(*args, **kwargs)
     return wrapper
