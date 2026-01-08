@@ -3,7 +3,7 @@ from psycopg2.extras import RealDictCursor
 from app.db import get_connection
 
 class RecordService:
-    # 2) Crear expediente
+    # Crear expediente
     @staticmethod
     def _resolve_user_id_by_email(cur, user_email: str | None):
         if not user_email:
@@ -250,5 +250,39 @@ class RecordService:
                 """, (user_id,))
                 record = cur.fetchone()
                 return record
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_entry(entry_id: str, data: dict) -> dict:
+        allowed = {"entry_date", "diagnosis", "treatment", "is_current"}
+        payload = {k: data.get(k) for k in allowed if k in data}
+
+        if not payload:
+            raise ValueError("No hay campos para actualizar.")
+
+        sets = []
+        values = []
+        for k, v in payload.items():
+            sets.append(f"{k} = %s")
+            values.append(v)
+
+        values.append(entry_id)
+
+        conn = get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    UPDATE record_entries
+                    SET {sets}
+                    WHERE id = %s
+                    RETURNING id, record_id, entry_date, diagnosis, treatment, is_current;
+            """.format(sets=", ".join(sets)), tuple(values))
+                row = cur.fetchone()
+                if not row:
+                    raise ValueError("Entry no encontrado.")
+
+                conn.commit()
+                return row
         finally:
             conn.close()

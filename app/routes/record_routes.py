@@ -100,3 +100,15 @@ def my_record():
 
     entries = RecordService.list_entries(str(record["id"]))
     return jsonify({"record": record, "entries": entries}), 200
+
+
+@bp.patch("/entries/<entry_id>")
+@auth_required
+@admin_required
+def update_entry(entry_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        updated = RecordService.update_entry(entry_id, data)
+        return jsonify({"entry": updated}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
