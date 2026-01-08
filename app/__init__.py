@@ -30,7 +30,8 @@ def create_app():
     from .routes.site_routes import site_bp
     from .routes.chatbot_routes import bp as chatbot_bp
     from .routes.planner_routes import bp as planner_bp
-
+    from .routes.record_routes import bp as records_bp  
+    from .routes.users_routes import bp as users_bp  
 
     app.register_blueprint(patients_bp, url_prefix="/api/patients")
     app.register_blueprint(appointments_bp, url_prefix="/api/appointments")
@@ -38,5 +39,7 @@ def create_app():
     app.register_blueprint(chatbot_bp, url_prefix="/chatbot") 
     app.register_blueprint(auth_bp)
     app.register_blueprint(site_bp)
+    app.register_blueprint(records_bp)
+    app.register_blueprint(users_bp)
     
     return app
