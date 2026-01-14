@@ -8,9 +8,11 @@ class Appointment(db.Model):
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey("users.id"), nullable=False)
-
+    # ahora puede ser NULL para citas manuales sin cuenta
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey("users.id"), nullable=True)
     user = db.relationship("User", backref="appointments", lazy=True)
+
+    description = db.Column(db.Text, nullable=True)  # <- nuevo
 
     comment = db.Column(db.Text, nullable=True)
 
@@ -20,7 +22,7 @@ class Appointment(db.Model):
     scheduled_start = db.Column(db.DateTime(timezone=True), nullable=True)
     scheduled_end = db.Column(db.DateTime(timezone=True), nullable=True)
 
-    status = db.Column(db.Text, nullable=False, default="requested")  
+    status = db.Column(db.Text, nullable=False, default="requested")
 
     is_paid = db.Column(db.Boolean, nullable=False, default=False)
     paid_at = db.Column(db.DateTime(timezone=True), nullable=True)
@@ -31,7 +33,8 @@ class Appointment(db.Model):
     def to_dict(self):
         return {
             "id": str(self.id),
-            "user_id": str(self.user_id),
+            "user_id": str(self.user_id) if self.user_id else None,
+            "description": self.description,
             "comment": self.comment,
             "requested_start": self.requested_start.isoformat() if self.requested_start else None,
             "requested_end": self.requested_end.isoformat() if self.requested_end else None,
@@ -42,7 +45,5 @@ class Appointment(db.Model):
             "paid_at": self.paid_at.isoformat() if self.paid_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "user": {
-                "full_name": self.user.full_name
-            } if self.user else None,
+            "user": {"full_name": self.user.full_name} if self.user else None,
         }

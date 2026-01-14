@@ -1,17 +1,21 @@
-# app/routes/planner_routes.py
 from flask import Blueprint, request, jsonify
 from datetime import datetime
+from ..extensions import db
 from ..services.planner_service import PlannerService
+from ..models import Appointment, PlannerItem
 
 bp = Blueprint("planner", __name__)
 
 def parse_dt(value: str | None):
     if not value:
         return None
-    # acepta ISO: "2025-12-28T09:00:00.000Z"
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
-@bp.get("/")
+# =========================
+# GET /api/planner?from=...&to=...&kind=...
+# =========================
+@bp.route("", methods=["GET"])
+@bp.route("/", methods=["GET"])
 def list_planner_items():
     date_from = parse_dt(request.args.get("from"))
     date_to = parse_dt(request.args.get("to"))
@@ -21,37 +25,64 @@ def list_planner_items():
         return jsonify({"error": "from and to are required (ISO)"}), 400
 
     items = PlannerService.list_items(date_from, date_to, kind=kind)
-    return jsonify([i.to_dict() for i in items]), 200
 
-@bp.post("/")
+    result = []
+    for it in items:
+        d = it.to_dict()
+        if d.get("appointment_id"):
+            appt = Appointment.query.get(it.appointment_id)
+            d["appointment"] = appt.to_dict() if appt else None
+        result.append(d)
+
+    return jsonify(result), 200
+
+
+# =========================
+# POST /api/planner  (crear evento)
+# Body:
+# {
+#   "title": "Reunión",
+#   "note": "...",
+#   "start_at": "2026-01-14T18:00:00-06:00"  ó con Z
+#   "end_at":   "2026-01-14T19:00:00-06:00",
+#   "all_day": false,
+#   "location": "..."
+# }
+# =========================
+@bp.route("", methods=["POST"])
+@bp.route("/", methods=["POST"])
 def create_planner_item():
-    payload = request.get_json(force=True)
+    payload = request.get_json(force=True) or {}
 
-    payload["start_at"] = parse_dt(payload.get("start_at"))
-    payload["end_at"] = parse_dt(payload.get("end_at"))
+    start_at = parse_dt(payload.get("start_at"))
+    end_at = parse_dt(payload.get("end_at"))
 
-    try:
-        item = PlannerService.create_item(payload)
-        return jsonify(item.to_dict()), 201
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+    if not start_at or not end_at:
+        return jsonify({"error": "start_at and end_at are required (ISO)"}), 400
+    if end_at <= start_at:
+        return jsonify({"error": "end_at must be greater than start_at"}), 400
 
-@bp.put("/<uuid:item_id>")
-def update_planner_item(item_id):
-    payload = request.get_json(force=True)
+    title = (payload.get("title") or "").strip()
+    note = payload.get("note")
+    location = payload.get("location")
+    all_day = bool(payload.get("all_day", False))
 
-    if "start_at" in payload:
-        payload["start_at"] = parse_dt(payload.get("start_at"))
-    if "end_at" in payload:
-        payload["end_at"] = parse_dt(payload.get("end_at"))
+    # 👇 OJO: este valor debe existir en tu enum planner_item_kind
+    kind_value = "event"
 
-    try:
-        item = PlannerService.update_item(item_id, payload)
-        return jsonify(item.to_dict()), 200
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+    item = PlannerItem(
+        kind=kind_value,
+        title=title,
+        note=note,
+        start_at=start_at,
+        end_at=end_at,
+        all_day=all_day,
+        location=location,
+        created_by=None,       # si luego querés, aquí ponés user_id del token
+        appointment_id=None,   # evento NO es cita
+    )
 
-@bp.delete("/<uuid:item_id>")
-def delete_planner_item(item_id):
-    PlannerService.delete_item(item_id)
-    return jsonify({"ok": True}), 200
+    db.session.add(item)
+    db.session.commit()
+
+    return jsonify(item.to_dict()), 201
