@@ -1,3 +1,6 @@
+# app/services/planner_sync.py
+from __future__ import annotations
+
 from datetime import datetime
 from ..extensions import db
 from ..models import PlannerItem, Appointment
@@ -5,38 +8,30 @@ from ..models import PlannerItem, Appointment
 class PlannerSync:
     @staticmethod
     def upsert_for_appointment(appt: Appointment):
-        # Solo si hay scheduled_start/end (lo que se muestra en agenda)
+        # Si no hay scheduled_start/end => no se muestra en agenda
         if not appt.scheduled_start or not appt.scheduled_end:
             item = PlannerItem.query.filter_by(appointment_id=appt.id).first()
             if item:
                 db.session.delete(item)
             return None
 
-        # ✅ title SIEMPRE válido (nunca vacío)
-        # - Si tiene usuario: "Cita: Nombre"
-        # - Si no: usa descripción o "Cita manual"
-        patient_name = None
+        d = appt.to_dict()
+        desc = (d.get("description") or "").strip()
+        user_name = None
         try:
-            # por si tienes relación appt.user cargada
-            patient_name = getattr(appt.user, "full_name", None)
+            user_name = d.get("user", {}).get("full_name")
         except Exception:
-            patient_name = None
+            user_name = None
 
-        title = (
-            f"Cita: {patient_name}"
-            if patient_name
-            else (appt.description.strip() if appt.description and appt.description.strip() else "Cita manual")
-        )
-
-        # ✅ note: usa comment si existe (o None)
-        note = appt.comment.strip() if appt.comment and appt.comment.strip() else None
+        title = f"Cita: {user_name}" if user_name else (desc if desc else "Cita manual")
+        note = (d.get("comment") or "").strip() if d.get("comment") else None
 
         item = PlannerItem.query.filter_by(appointment_id=appt.id).first()
 
         if not item:
             item = PlannerItem(
-                kind="manual_appointment",          # ✅ coincide con tu ENUM
-                title=title,                         # ✅ no vacío
+                kind="event",  # ✅ coincide con tu enum actual
+                title=title,
                 note=note,
                 start_at=appt.scheduled_start,
                 end_at=appt.scheduled_end,
@@ -45,9 +40,9 @@ class PlannerSync:
             )
             db.session.add(item)
         else:
-            item.kind = "manual_appointment"
-            item.title = title                      # ✅ actualiza
-            item.note = note                        # ✅ actualiza
+            item.kind = "event"
+            item.title = title
+            item.note = note
             item.start_at = appt.scheduled_start
             item.end_at = appt.scheduled_end
             item.all_day = False

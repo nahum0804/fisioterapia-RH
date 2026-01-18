@@ -1,13 +1,36 @@
-from flask import Blueprint, jsonify
-from ..models import User
+# app/routes/users_routes.py
+from flask import Blueprint, request, jsonify
+from psycopg2.extras import RealDictCursor
+from app.db import get_connection
+from app.utils.auth_required import auth_required, admin_required
 
-bp = Blueprint("users", __name__)
+bp = Blueprint("users", __name__, url_prefix="/api/users")
 
 @bp.get("/")
+@auth_required
+@admin_required
 def list_users():
-    users = User.query.order_by(User.full_name.asc()).all()
-    return jsonify([{
-        "id": str(u.id),
-        "full_name": u.full_name,
-        "email": u.email,
-    } for u in users]), 200
+    q = (request.args.get("search") or "").strip().lower()
+    conn = get_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            if q:
+                cur.execute("""
+                    SELECT id, full_name, email, role, is_active
+                    FROM users
+                    WHERE LOWER(full_name) LIKE %s OR LOWER(email) LIKE %s
+                    ORDER BY full_name ASC
+                    LIMIT 50;
+                """, (f"%{q}%", f"%{q}%"))
+            else:
+                cur.execute("""
+                    SELECT id, full_name, email, role, is_active
+                    FROM users
+                    ORDER BY full_name ASC
+                    LIMIT 50;
+                """)
+            rows = cur.fetchall()
+            print("USERS ROWS:", rows)  
+            return jsonify(rows), 200
+    finally:
+        conn.close()
