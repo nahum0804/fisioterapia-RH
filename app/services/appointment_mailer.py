@@ -22,11 +22,8 @@ def _status_es(status: str) -> str:
         "cancelled": "Cancelada",
     }.get(status, status)
 
-def _admin_email() -> str:
-    email = os.getenv("ADMIN_EMAIL")
-    if not email:
-        raise RuntimeError("Falta ADMIN_EMAIL en variables de entorno.")
-    return email
+def _admin_email() -> str | None:
+    return os.getenv("ADMIN_EMAIL")
 
 
 def email_on_request(user_email: str, user_name: str, appt) -> None:
@@ -56,7 +53,10 @@ def email_on_request(user_email: str, user_name: str, appt) -> None:
       <li><b>ID cita:</b> {appt.id}</li>
     </ul>
     """
-    _safe_send(_admin_email(), subject_admin, html_admin)
+    admin_email = _admin_email()
+    if admin_email:
+        _safe_send(admin_email, subject_admin, html_admin)
+
 
 
 def email_on_confirm(user_email: str, user_name: str, appt) -> None:

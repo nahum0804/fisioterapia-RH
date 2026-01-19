@@ -7,6 +7,67 @@ from ..utils.auth_required import auth_required, admin_required
 from datetime import timedelta
 
 bp = Blueprint("appointments", __name__)
+from app.services.planner_service import PlannerService
+
+# --------------------- User porpouse functionality ----------------------------
+
+# horario: Lun-Vie 13:00-19:00 (último inicio 18:00)
+OPEN_HOUR = 13
+CLOSE_HOUR = 19
+
+def is_weekday(dt: datetime):
+    return dt.weekday() < 5  # 0..4
+
+def in_business_hours(start: datetime, end: datetime):
+    # start/end deben ser TZ-aware
+    if not is_weekday(start):
+        return False
+    if start.date() != end.date():
+        return False
+    # horas válidas: [13:00, 19:00] con end <= 19:00
+    if start.hour < OPEN_HOUR:
+        return False
+    if end.hour > CLOSE_HOUR or (end.hour == CLOSE_HOUR and end.minute > 0):
+        return False
+    return True
+
+@bp.get("/availability")
+@auth_required
+def availability():
+    date_from = parse_dt(request.args.get("from"))
+    date_to = parse_dt(request.args.get("to"))
+    if not date_from or not date_to:
+        return jsonify({"error": "from and to are required (ISO)"}), 400
+
+    # generamos slots de 1h por día
+    ONE_HOUR = timedelta(hours=1)
+    slots = []
+
+    cursor = date_from
+    # normalizamos cursor al inicio del día en su tz
+    cursor = cursor.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    while cursor < date_to:
+        if is_weekday(cursor):
+            for h in range(OPEN_HOUR, CLOSE_HOUR):  # 13..18
+                start = cursor.replace(hour=h, minute=0, second=0, microsecond=0)
+                end = start + ONE_HOUR
+
+                # fuera del rango pedido
+                if start < date_from or end > date_to:
+                    continue
+
+                # si hay conflicto con agenda => no disponible
+                if PlannerService.has_conflict(start, end):
+                    continue
+
+                slots.append(start.isoformat())
+
+        cursor = cursor + timedelta(days=1)
+
+    return jsonify({"duration_min": 60, "slots": slots}), 200
+
+# --------------------- Endpoints appointments ----------------------------
 
 def parse_dt(value: str | None):
     if not value:
@@ -34,36 +95,55 @@ def list_appointments():
 @auth_required
 def request_appointment():
     payload = request.get_json(force=True) or {}
-
     payload["user_id"] = g.user_id
 
-    if not payload.get("description"):
+    description = (payload.get("description") or "").strip()
+    if not description:
         return jsonify({"error": "description is required"}), 400
 
-    payload["requested_start"] = parse_dt(payload.get("requested_start"))
-    payload["requested_end"] = parse_dt(payload.get("requested_end"))
+    proposed_starts = payload.get("proposed_starts")
+    if not isinstance(proposed_starts, list) or len(proposed_starts) != 3:
+        return jsonify({"error": "proposed_starts must be an array of 3 ISO datetimes"}), 400
 
-    if payload.get("requested_start") is None or payload.get("requested_end") is None:
-        return jsonify({"error": "requested_start and requested_end must be valid ISO dates"}), 400
+    starts = []
+    for s in proposed_starts:
+        dt = parse_dt(s)
+        if not dt:
+            return jsonify({"error": "Invalid datetime in proposed_starts"}), 400
+        starts.append(dt)
 
-    appt = AppointmentsService.request_appointment(payload)
+    appt = AppointmentsService.request_appointment_with_proposals({
+        "user_id": g.user_id,
+        "description": description,
+        "comment": payload.get("comment"),
+        "considerations": payload.get("considerations"),
+        "starts": starts,
+    })
+
     return jsonify(appt.to_dict()), 201
+
 
 @bp.post("/<uuid:appointment_id>/confirm")
 @auth_required
 @admin_required
 def confirm_appointment(appointment_id):
     payload = request.get_json(force=True) or {}
+
+    proposal_id = payload.get("proposal_id")
     scheduled_start = parse_dt(payload.get("scheduled_start"))
 
-    if not scheduled_start:
-        return jsonify({"error": "scheduled_start is required (valid ISO date)"}), 400
-
     try:
-        appt = AppointmentsService.admin_confirm(appointment_id, scheduled_start)
+        if proposal_id:
+            appt = AppointmentsService.admin_confirm_from_proposal(appointment_id, proposal_id)
+        else:
+            if not scheduled_start:
+                return jsonify({"error": "scheduled_start or proposal_id is required"}), 400
+            appt = AppointmentsService.admin_confirm(appointment_id, scheduled_start)
+
         return jsonify(appt.to_dict()), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+
 
 
 # (Compatibilidad) marcar pagado con POST sin payload

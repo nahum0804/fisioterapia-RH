@@ -6,6 +6,7 @@ from datetime import datetime
 
 from sqlalchemy.dialects.postgresql import UUID
 
+from .appointment_proposal import AppointmentProposal 
 from ..extensions import db
 from app.utils.appointments_fields import unpack_fields
 
@@ -57,6 +58,13 @@ class Appointment(db.Model):
         # Fallback: si no hay description en el pack, usa la columna description si existe
         if not description and self.description:
             description = self.description
+            
+        proposals = (
+            AppointmentProposal.query
+            .filter_by(appointment_id=self.id)
+            .order_by(AppointmentProposal.rank.asc())
+            .all()
+        )
 
         return {
             "id": str(self.id),
@@ -80,4 +88,7 @@ class Appointment(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
 
             "user": {"full_name": self.user.full_name} if self.user else None,
+
+            "proposals": [p.to_dict() for p in proposals],
+
         }

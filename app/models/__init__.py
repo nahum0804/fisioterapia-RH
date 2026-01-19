@@ -5,6 +5,7 @@ from .time_off import TherapistTimeOff
 from .appointment_event import AppointmentEvent
 from .user import User
 from .planner_item import PlannerItem 
+from .appointment_proposal import AppointmentProposal
 
 __all__ = [
     "Patient",
@@ -14,4 +15,5 @@ __all__ = [
     "AppointmentEvent",
     "User",
     "PlannerItem",
+    "AppointmentProposal",
 ]

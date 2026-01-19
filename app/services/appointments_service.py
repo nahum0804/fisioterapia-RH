@@ -1,15 +1,15 @@
 # app/services/appointments_service.py
 from __future__ import annotations
 
-from datetime import timedelta
-
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from ..extensions import db
 from ..models import Appointment, AppointmentEvent, User
 from app.utils.appointments_fields import pack_fields, unpack_fields
 
-# ✅ Planner sync (para reflejar la cita en agenda)
+from ..models.appointment_proposal import AppointmentProposal
+
+
 from app.services.planner_sync import PlannerSync
 from .planner_service import PlannerService
 
@@ -21,6 +21,31 @@ from app.services.appointment_mailer import (
 )
 
 ONE_HOUR = timedelta(hours=1)
+
+#  -----------------------  User propouses service -----------------------
+
+from datetime import time
+
+OPEN_HOUR = 13
+CLOSE_HOUR = 19
+ONE_HOUR = timedelta(hours=1)
+
+def _is_weekday(dt: datetime):
+    return dt.weekday() < 5
+
+def _in_business_hours(start: datetime, end: datetime):
+    if not _is_weekday(start):
+        return False
+    if start.date() != end.date():
+        return False
+    if start.hour < OPEN_HOUR:
+        return False
+    if end.hour > CLOSE_HOUR or (end.hour == CLOSE_HOUR and end.minute > 0):
+        return False
+    return True
+
+
+#  ---- Service appointments ------
 
 class AppointmentsService:
     @staticmethod
@@ -78,7 +103,7 @@ class AppointmentsService:
         appt.status = "confirmed"
         appt.scheduled_start = scheduled_start
         appt.scheduled_end = scheduled_start + ONE_HOUR
-        appt.updated_at = datetime.utcnow()
+        appt.updated_at = datetime.now(timezone.utc)
 
         db.session.add(
             AppointmentEvent(
@@ -179,8 +204,15 @@ class AppointmentsService:
         new_value = "paid" if is_paid else "unpaid"
 
         appt.is_paid = is_paid
-        appt.paid_at = datetime.utcnow() if is_paid else None
-        appt.updated_at = datetime.utcnow()
+        appt.paid_at = datetime.now(timezone.utc) if is_paid else None
+        appt.updated_at = datetime.now(timezone.utc)
+
+        # si se pagó, borrar propuestas no seleccionadas (dejar solo la elegida)
+        if is_paid and appt.status == "confirmed":
+            AppointmentProposal.query.filter(
+                AppointmentProposal.appointment_id == appt.id,
+                AppointmentProposal.is_selected.is_(False)
+            ).delete(synchronize_session=False)
 
         db.session.add(
             AppointmentEvent(
@@ -194,9 +226,56 @@ class AppointmentsService:
 
         db.session.commit()
         return appt
+    
+    @staticmethod
+    def _auto_cancel_expired_requests():
+        now = datetime.now(timezone.utc)
+
+        # citas requested que no tienen confirmación
+        appts = Appointment.query.filter(Appointment.status == "requested").all()
+        for a in appts:
+            props = AppointmentProposal.query.filter_by(appointment_id=a.id).all()
+            if not props:
+                continue
+            # si TODAS terminaron en el pasado => cancelar
+            if all((p.end_at and p.end_at < now) for p in props):
+                old = a.status
+                a.status = "cancelled"
+                a.updated_at = datetime.now(timezone.utc)
+                db.session.add(AppointmentEvent(
+                    appointment_id=a.id,
+                    event_type="status_changed",
+                    old_value=old,
+                    new_value="cancelled",
+                    note="Auto-cancelled: all proposed times expired",
+                ))
+                PlannerSync.upsert_for_appointment(a)
+
+        db.session.commit()
+
+    @staticmethod
+    def _cleanup_proposals_for_past_confirmed():
+        now = datetime.now(timezone.utc)
+        appts = Appointment.query.filter(
+            Appointment.status == "confirmed",
+            Appointment.scheduled_end.isnot(None),
+            Appointment.scheduled_end < now
+        ).all()
+
+        for a in appts:
+            AppointmentProposal.query.filter(
+                AppointmentProposal.appointment_id == a.id,
+                AppointmentProposal.is_selected.is_(False)
+            ).delete(synchronize_session=False)
+
+        db.session.commit()
 
     @staticmethod
     def list_appointments(status: str | None = None, user_id: str | None = None):
+
+        AppointmentsService._auto_cancel_expired_requests()
+        AppointmentsService._cleanup_proposals_for_past_confirmed()
+
         q = Appointment.query
 
         if status:
@@ -230,7 +309,7 @@ class AppointmentsService:
             if k in payload:
                 setattr(appt, k, payload[k])
 
-        appt.updated_at = datetime.utcnow()
+        appt.updated_at = datetime.now(timezone.utc)
 
         # ✅ si cambiaron scheduled_*, reflejar agenda
         PlannerSync.upsert_for_appointment(appt)
@@ -244,7 +323,7 @@ class AppointmentsService:
 
         old_status = appt.status
         appt.status = "cancelled"
-        appt.updated_at = datetime.utcnow()
+        appt.updated_at = datetime.now(timezone.utc)
 
         db.session.add(
             AppointmentEvent(
@@ -282,3 +361,117 @@ class AppointmentsService:
 
         db.session.delete(appt)
         db.session.commit()
+    
+    @staticmethod
+    def request_appointment_with_proposals(payload: dict) -> Appointment:
+        starts: list[datetime] = payload["starts"]
+        if len(starts) != 3:
+            raise ValueError("Must provide exactly 3 proposed starts")
+
+        # limpiar duplicados
+        iso_set = set([s.isoformat() for s in starts])
+        if len(iso_set) != 3:
+            raise ValueError("Proposed times must be different")
+
+        # validar slots: 1h, horario, futuro, sin choque
+        now = datetime.now(timezone.utc)
+        for s in starts:
+            e = s + ONE_HOUR
+            if s <= now:
+                raise ValueError("All proposed times must be in the future")
+            if not _in_business_hours(s, e):
+                raise ValueError("Proposed times must be Mon-Fri 1pm-7pm (1h slots)")
+            if PlannerService.has_conflict(s, e):
+                raise ValueError("One of the proposed slots is not available")
+
+        appt = Appointment(
+            user_id=payload["user_id"],
+            comment=pack_fields(
+                payload.get("description") or "",
+                payload.get("comment"),
+                payload.get("considerations"),
+            ),
+            status="requested",
+            requested_start=None,
+            requested_end=None,
+        )
+
+        db.session.add(appt)
+        db.session.flush()
+
+        # guardar proposals rank 1..3
+        for idx, s in enumerate(sorted(starts), start=1):
+            db.session.add(
+                AppointmentProposal(
+                    appointment_id=appt.id,
+                    start_at=s,
+                    end_at=s + ONE_HOUR,
+                    rank=idx,
+                    is_selected=False,
+                )
+            )
+
+        db.session.add(
+            AppointmentEvent(
+                appointment_id=appt.id,
+                event_type="created",
+                note="Appointment requested with 3 proposed slots",
+            )
+        )
+
+        db.session.commit()
+
+        # correo (igual que antes)
+        user = db.session.get(User, appt.user_id)
+        if user and getattr(user, "email", None):
+            email_on_request(
+                user_email=user.email,
+                user_name=getattr(user, "full_name", "Paciente"),
+                appt=appt,
+            )
+
+        return appt
+    
+    @staticmethod
+    def admin_confirm_from_proposal(appointment_id, proposal_id):
+        appt = Appointment.query.get_or_404(appointment_id)
+
+        # buscar proposal
+        p = AppointmentProposal.query.get_or_404(proposal_id)
+        if p.appointment_id != appt.id:
+            raise ValueError("Proposal does not belong to this appointment")
+
+        # validar conflicto de agenda
+        if PlannerService.has_conflict(p.start_at, p.end_at, exclude_appointment_id=appt.id):
+            raise ValueError("Time slot already occupied")
+
+        # marcar seleccionada
+        AppointmentProposal.query.filter_by(appointment_id=appt.id).update({"is_selected": False})
+        p.is_selected = True
+
+        old_status = appt.status
+        appt.status = "confirmed"
+        appt.scheduled_start = p.start_at
+        appt.scheduled_end = p.end_at
+        appt.updated_at = datetime.now(timezone.utc)
+
+        db.session.add(
+            AppointmentEvent(
+                appointment_id=appt.id,
+                event_type="status_changed",
+                old_value=old_status,
+                new_value="confirmed",
+                note="Confirmed by selecting a proposed slot",
+            )
+        )
+
+        PlannerSync.upsert_for_appointment(appt)
+        db.session.commit()
+
+        user = db.session.get(User, appt.user_id)
+        if user and user.email:
+            email_on_confirm(user_email=user.email, user_name=user.full_name, appt=appt)
+
+        return appt
+
+
