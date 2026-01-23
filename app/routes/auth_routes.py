@@ -1,3 +1,4 @@
+# auth?routes
 from flask import Blueprint, request, jsonify, g
 
 from app.services.auth_service import AuthService
@@ -15,6 +16,7 @@ def register():
             full_name=data.get("full_name", ""),
             email=data.get("email", ""),
             password=data.get("password", ""),
+            phone=data.get("phone", ""), 
         )
         return jsonify({"message": "Usuario creado", "user": user}), 201
     except ValueError as e:
@@ -61,6 +63,7 @@ def update_me():
             user_id=g.jwt["sub"],
             full_name=data.get("full_name", ""),
             email=data.get("email", ""),
+            phone=data.get("phone", ""),  
         )
         return jsonify({"message": "Perfil actualizado", "user": user}), 200
     except ValueError as e:

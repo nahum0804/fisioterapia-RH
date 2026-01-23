@@ -1,3 +1,4 @@
+# auth_service
 import os
 import secrets
 import hashlib
@@ -10,7 +11,8 @@ from app.services.email_service import send_email
 
 class AuthService:
     @staticmethod
-    def register(full_name: str, email: str, password: str) -> dict:
+    def register(full_name: str, email: str, password: str, phone: str) -> dict:
+
         if not full_name or not email or not password:
             raise ValueError("full_name, email y password son requeridos")
 
@@ -19,6 +21,11 @@ class AuthService:
 
         if len(password) < 6:
             raise ValueError("La contraseña debe tener al menos 6 caracteres")
+        
+        phone = (phone or "").strip()
+        if not phone:
+            raise ValueError("phone es requerido")
+
 
         password_hash = generate_password_hash(password)
 
@@ -32,12 +39,13 @@ class AuthService:
 
                 cur.execute(
                     """
-                    INSERT INTO users (full_name, email, password_hash, role, is_active)
-                    VALUES (%s, %s, %s, 'user', TRUE)
-                    RETURNING id, full_name, email, role, is_active, created_at, updated_at;
+                    INSERT INTO users (full_name, email, password_hash, phone, role, is_active)
+                    VALUES (%s, %s, %s, %s, 'user', TRUE)
+                    RETURNING id, full_name, email, phone, role, is_active, created_at, updated_at;
                     """,
-                    (full_name, email, password_hash),
+                    (full_name, email, password_hash, phone),
                 )
+
                 user = cur.fetchone()
                 conn.commit()
                 return user
@@ -56,12 +64,13 @@ class AuthService:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
                     """
-                    SELECT id, full_name, email, password_hash, role, is_active, created_at, updated_at
+                    SELECT id, full_name, email, phone, password_hash, role, is_active, created_at, updated_at
                     FROM users
                     WHERE email = %s;
                     """,
                     (email,),
                 )
+
                 user = cur.fetchone()
 
                 if not user:
@@ -88,18 +97,23 @@ class AuthService:
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
-                    SELECT id, full_name, email, role, is_active, created_at, updated_at
+                    SELECT id, full_name, email, phone, role, is_active, created_at, updated_at
                     FROM users
                     WHERE id = %s;
                 """, (user_id,))
+
                 return cur.fetchone()
         finally:
             conn.close()
 
     @staticmethod
-    def update_profile(user_id: str, full_name: str, email: str) -> dict:
+    def update_profile(user_id: str, full_name: str, email: str, phone: str) -> dict:
         full_name = (full_name or "").strip()
         email = (email or "").strip().lower()
+        phone = (phone or "").strip()
+        if not phone:
+            raise ValueError("phone es requerido")
+
 
         if not full_name:
             raise ValueError("full_name es requerido")
@@ -127,12 +141,14 @@ class AuthService:
                     UPDATE users
                     SET full_name = %s,
                         email = %s,
+                        phone = %s,
                         updated_at = NOW()
                     WHERE id = %s
-                    RETURNING id, full_name, email, role, is_active, created_at, updated_at;
+                    RETURNING id, full_name, email, phone, role, is_active, created_at, updated_at;
                     """,
-                    (full_name, email, user_id),
+                    (full_name, email, phone, user_id),
                 )
+
                 user = cur.fetchone()
                 conn.commit()
                 return user

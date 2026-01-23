@@ -1,5 +1,6 @@
 # app/services/appointments_service.py
 from __future__ import annotations
+from sqlalchemy.orm import joinedload
 
 from datetime import datetime, timedelta, timezone
 
@@ -276,7 +277,7 @@ class AppointmentsService:
         AppointmentsService._auto_cancel_expired_requests()
         AppointmentsService._cleanup_proposals_for_past_confirmed()
 
-        q = Appointment.query
+        q = Appointment.query.options(joinedload(Appointment.user))
 
         if status:
             q = q.filter(Appointment.status == status)

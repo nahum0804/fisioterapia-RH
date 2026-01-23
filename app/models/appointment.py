@@ -70,7 +70,6 @@ class Appointment(db.Model):
             "id": str(self.id),
             "user_id": str(self.user_id) if self.user_id else None,
 
-            # ✅ ya desempaquetado (lo que el frontend espera ver)
             "description": description,
             "comment": user_comment,
             "considerations": considerations,
@@ -87,7 +86,14 @@ class Appointment(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
 
-            "user": {"full_name": self.user.full_name} if self.user else None,
+            "user": (
+                {
+                    "full_name": self.user.full_name,
+                    "phone": getattr(self.user, "phone", None),
+                }
+                if self.user
+                else None
+            ),
 
             "proposals": [p.to_dict() for p in proposals],
 

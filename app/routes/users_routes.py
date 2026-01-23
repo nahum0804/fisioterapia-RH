@@ -16,7 +16,7 @@ def list_users():
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             if q:
                 cur.execute("""
-                    SELECT id, full_name, email, role, is_active
+                    SELECT id, full_name, email, phone, role, is_active
                     FROM users
                     WHERE LOWER(full_name) LIKE %s OR LOWER(email) LIKE %s
                     ORDER BY full_name ASC
@@ -24,13 +24,12 @@ def list_users():
                 """, (f"%{q}%", f"%{q}%"))
             else:
                 cur.execute("""
-                    SELECT id, full_name, email, role, is_active
+                    SELECT id, full_name, email, phone, role, is_active
                     FROM users
                     ORDER BY full_name ASC
                     LIMIT 50;
                 """)
             rows = cur.fetchall()
-            print("USERS ROWS:", rows)  
             return jsonify(rows), 200
     finally:
         conn.close()
