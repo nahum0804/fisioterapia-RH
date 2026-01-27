@@ -34,7 +34,7 @@ def create_app():
                 "origins": [
                     "http://localhost:5173",
                     "http://127.0.0.1:5173",
-                    "https://statuesque-naiad-e59157.netlify.app/",
+                    "https://statuesque-naiad-e59157.netlify.app",
                 ]
             }
         },
@@ -42,6 +42,7 @@ def create_app():
         allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
+
 
     # --- Blueprints (SIN duplicar imports) ---
     from .routes.patients_routes import bp as patients_bp
