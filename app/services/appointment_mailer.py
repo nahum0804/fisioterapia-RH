@@ -1,11 +1,14 @@
-# appointment_mailer.py
+# app/services/appointment_mailer.py
 import os
+import logging
 from zoneinfo import ZoneInfo
 from datetime import datetime
 
 from app.services.email_service import send_email
 
+log = logging.getLogger(__name__)
 CR_TZ = ZoneInfo("America/Costa_Rica")
+
 
 def _fmt(dt: datetime | None) -> str:
     if not dt:
@@ -15,12 +18,14 @@ def _fmt(dt: datetime | None) -> str:
         dt = dt.replace(tzinfo=ZoneInfo("UTC"))
     return dt.astimezone(CR_TZ).strftime("%d/%m/%Y %I:%M %p")
 
+
 def _status_es(status: str) -> str:
     return {
         "requested": "Solicitada",
         "confirmed": "Confirmada",
         "cancelled": "Cancelada",
     }.get(status, status)
+
 
 def _admin_email() -> str | None:
     return os.getenv("ADMIN_EMAIL")
@@ -43,20 +48,19 @@ def email_on_request(user_email: str, user_name: str, appt) -> None:
     _safe_send(user_email, subject_user, html_user)
 
     # Admin
-    subject_admin = f"[Admin] Nueva solicitud de cita ({status})"
-    html_admin = f"""
-    <h2>Nueva solicitud de cita</h2>
-    <ul>
-      <li><b>Paciente:</b> {user_name} ({user_email})</li>
-      <li><b>Estado:</b> {status}</li>
-      <li><b>Rango solicitado:</b> {_fmt(appt.requested_start)} - {_fmt(appt.requested_end)}</li>
-      <li><b>ID cita:</b> {appt.id}</li>
-    </ul>
-    """
     admin_email = _admin_email()
     if admin_email:
+        subject_admin = f"[Admin] Nueva solicitud de cita ({status})"
+        html_admin = f"""
+        <h2>Nueva solicitud de cita</h2>
+        <ul>
+          <li><b>Paciente:</b> {user_name} ({user_email})</li>
+          <li><b>Estado:</b> {status}</li>
+          <li><b>Rango solicitado:</b> {_fmt(appt.requested_start)} - {_fmt(appt.requested_end)}</li>
+          <li><b>ID cita:</b> {appt.id}</li>
+        </ul>
+        """
         _safe_send(admin_email, subject_admin, html_admin)
-
 
 
 def email_on_confirm(user_email: str, user_name: str, appt) -> None:
@@ -88,12 +92,11 @@ def email_on_cancel(user_email: str, user_name: str, appt, reason: str | None = 
     _safe_send(user_email, subject, html)
 
 
-def _safe_send(to_email: str, subject: str, html_body: str) -> None:
+def _safe_send(to_email: str, subject: str, html_body: str) -> bool:
     """
-    Para que si el SMTP falla, no te rompa el endpoint.
-    Ideal: usar logger en vez de print.
+    Envío "best-effort": si falla NO rompe endpoints.
     """
-    try:
-        send_email(to_email=to_email, subject=subject, html_body=html_body)
-    except Exception as e:
-        print(f"[MAIL] Falló envío a {to_email}: {e}")
+    ok = send_email(to_email=to_email, subject=subject, html_body=html_body)
+    if not ok:
+        log.warning("[MAIL] No se pudo enviar correo a %s (subject=%s)", to_email, subject)
+    return ok

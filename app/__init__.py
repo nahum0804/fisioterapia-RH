@@ -38,6 +38,7 @@ def create_app():
                 ]
             }
         },
+        intercept_exceptions=True,
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
