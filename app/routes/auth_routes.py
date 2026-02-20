@@ -16,7 +16,9 @@ def register():
             full_name=data.get("full_name", ""),
             email=data.get("email", ""),
             password=data.get("password", ""),
-            phone=data.get("phone", ""), 
+            phone=data.get("phone", ""),
+            direccion=data.get("direccion", ""),  # <--- agregado
+            cedula=data.get("cedula", ""),        # <--- agregado
         )
         return jsonify({"message": "Usuario creado", "user": user}), 201
     except ValueError as e:

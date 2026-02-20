@@ -16,6 +16,9 @@ class User(db.Model):
 
     phone = db.Column(db.String(20), nullable=False, default="0000 0000")
 
+    direccion = db.Column(db.Text, nullable=True)
+    cedula = db.Column(db.String(20), nullable=True, unique=True)
+    
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
@@ -25,6 +28,8 @@ class User(db.Model):
             "full_name": self.full_name,
             "email": self.email,
             "phone": self.phone,
+            "direccion": self.direccion,  
+            "cedula": self.cedula, 
             "role": self.role,
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,

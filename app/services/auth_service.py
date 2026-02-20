@@ -11,46 +11,64 @@ from app.services.email_service import send_email
 
 class AuthService:
     @staticmethod
-    def register(full_name: str, email: str, password: str, phone: str) -> dict:
+    def register(full_name: str, email: str, password: str, phone: str, direccion: str, cedula: str) -> dict:
 
         if not full_name or not email or not password:
             raise ValueError("full_name, email y password son requeridos")
 
         email = email.strip().lower()
         full_name = full_name.strip()
-
-        if len(password) < 6:
-            raise ValueError("La contraseña debe tener al menos 6 caracteres")
-        
         phone = (phone or "").strip()
+        direccion = (direccion or "").strip()
+        cedula = (cedula or "").strip()
+
         if not phone:
             raise ValueError("phone es requerido")
 
+        if not direccion:
+            raise ValueError("direccion es requerida")
+
+        if not cedula:
+            raise ValueError("cedula es requerida")
+
+        if len(password) < 6:
+            raise ValueError("La contraseña debe tener al menos 6 caracteres")
 
         password_hash = generate_password_hash(password)
 
         conn = get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Verificar si existe
+
+                # Verificar email duplicado
                 cur.execute("SELECT id FROM users WHERE email = %s;", (email,))
                 if cur.fetchone():
                     raise ValueError("El email ya está registrado")
 
+                # Verificar cedula duplicada
+                cur.execute("SELECT id FROM users WHERE cedula = %s;", (cedula,))
+                if cur.fetchone():
+                    raise ValueError("La cédula ya está registrada")
+
                 cur.execute(
                     """
-                    INSERT INTO users (full_name, email, password_hash, phone, role, is_active)
-                    VALUES (%s, %s, %s, %s, 'user', TRUE)
-                    RETURNING id, full_name, email, phone, role, is_active, created_at, updated_at;
+                    INSERT INTO users (
+                        full_name, email, password_hash, phone,
+                        direccion, cedula, role, is_active
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, 'user', TRUE)
+                    RETURNING id, full_name, email, phone, direccion, cedula, role, is_active, created_at, updated_at;
                     """,
-                    (full_name, email, password_hash, phone),
+                    (full_name, email, password_hash, phone, direccion, cedula),
                 )
 
                 user = cur.fetchone()
                 conn.commit()
                 return user
+
         finally:
             conn.close()
+
 
     @staticmethod
     def authenticate(email: str, password: str) -> dict:
@@ -64,7 +82,7 @@ class AuthService:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
                     """
-                    SELECT id, full_name, email, phone, password_hash, role, is_active, created_at, updated_at
+                    SELECT id, full_name, email, phone, direccion, cedula, password_hash, role, is_active, created_at, updated_at
                     FROM users
                     WHERE email = %s;
                     """,
@@ -97,7 +115,7 @@ class AuthService:
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
-                    SELECT id, full_name, email, phone, role, is_active, created_at, updated_at
+                    SELECT id, full_name, email, phone, direccion, cedula, role, is_active, created_at, updated_at
                     FROM users
                     WHERE id = %s;
                 """, (user_id,))
@@ -107,28 +125,35 @@ class AuthService:
             conn.close()
 
     @staticmethod
-    def update_profile(user_id: str, full_name: str, email: str, phone: str) -> dict:
+    def update_profile(user_id: str, full_name: str, email: str, phone: str, direccion: str, cedula: str) -> dict:
+
         full_name = (full_name or "").strip()
         email = (email or "").strip().lower()
         phone = (phone or "").strip()
-        if not phone:
-            raise ValueError("phone es requerido")
-
+        direccion = (direccion or "").strip()
+        cedula = (cedula or "").strip()
 
         if not full_name:
             raise ValueError("full_name es requerido")
         if not email:
             raise ValueError("email es requerido")
+        if not phone:
+            raise ValueError("phone es requerido")
+        if not direccion:
+            raise ValueError("direccion es requerida")
+        if not cedula:
+            raise ValueError("cedula es requerida")
 
         conn = get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Verificar que exista el usuario
+
+                # Verificar usuario existe
                 cur.execute("SELECT id FROM users WHERE id = %s;", (user_id,))
                 if not cur.fetchone():
                     raise ValueError("Usuario no encontrado")
 
-                # Verificar email duplicado (pero permitiendo el mismo del usuario)
+                # Verificar email duplicado
                 cur.execute(
                     "SELECT id FROM users WHERE email = %s AND id <> %s;",
                     (email, user_id),
@@ -136,24 +161,37 @@ class AuthService:
                 if cur.fetchone():
                     raise ValueError("Ese email ya está en uso")
 
+                # Verificar cedula duplicada
+                cur.execute(
+                    "SELECT id FROM users WHERE cedula = %s AND id <> %s;",
+                    (cedula, user_id),
+                )
+                if cur.fetchone():
+                    raise ValueError("Esa cédula ya está en uso")
+
                 cur.execute(
                     """
                     UPDATE users
                     SET full_name = %s,
                         email = %s,
                         phone = %s,
+                        direccion = %s,
+                        cedula = %s,
                         updated_at = NOW()
                     WHERE id = %s
-                    RETURNING id, full_name, email, phone, role, is_active, created_at, updated_at;
+                    RETURNING id, full_name, email, phone, direccion, cedula,
+                            role, is_active, created_at, updated_at;
                     """,
-                    (full_name, email, phone, user_id),
+                    (full_name, email, phone, direccion, cedula, user_id),
                 )
 
                 user = cur.fetchone()
                 conn.commit()
                 return user
+
         finally:
             conn.close()
+
 
     @staticmethod
     def change_password(user_id: str, current_password: str, new_password: str) -> None:

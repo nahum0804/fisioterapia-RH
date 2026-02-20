@@ -123,7 +123,7 @@ class RecordService:
 
     @staticmethod
     def create_record(payload: dict) -> dict:
-        required = ["patient_name", "patient_age", "birth_date", "phone"]
+        required = ["patient_name", "patient_age", "phone"]
         for k in required:
             if payload.get(k) in (None, ""):
                 raise ValueError(f"{k} es requerido")
@@ -136,13 +136,12 @@ class RecordService:
 
                 cur.execute("""
                     INSERT INTO patient_records
-                      (patient_name, patient_age, birth_date, phone, extra_description, user_id)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                      (patient_name, patient_age, phone, extra_description, user_id)
+                    VALUES (%s, %s, %s, %s, %s)
                     RETURNING *;
                 """, (
                     payload["patient_name"].strip(),
                     int(payload["patient_age"]),
-                    payload["birth_date"],
                     payload["phone"].strip(),
                     payload.get("extra_description"),
                     user_id
@@ -217,7 +216,6 @@ class RecordService:
                         UPDATE patient_records
                         SET patient_name = COALESCE(%s, patient_name),
                             patient_age = COALESCE(%s, patient_age),
-                            birth_date = COALESCE(%s, birth_date),
                             phone = COALESCE(%s, phone),
                             extra_description = COALESCE(%s, extra_description),
                             user_id = %s,
@@ -227,7 +225,6 @@ class RecordService:
                     """, (
                         payload.get("patient_name"),
                         payload.get("patient_age"),
-                        payload.get("birth_date"),
                         payload.get("phone"),
                         payload.get("extra_description"),
                         user_id,
@@ -239,7 +236,6 @@ class RecordService:
                         UPDATE patient_records
                         SET patient_name = COALESCE(%s, patient_name),
                             patient_age = COALESCE(%s, patient_age),
-                            birth_date = COALESCE(%s, birth_date),
                             phone = COALESCE(%s, phone),
                             extra_description = COALESCE(%s, extra_description),
                             updated_at = NOW()
@@ -248,7 +244,6 @@ class RecordService:
                     """, (
                         payload.get("patient_name"),
                         payload.get("patient_age"),
-                        payload.get("birth_date"),
                         payload.get("phone"),
                         payload.get("extra_description"),
                         record_id
