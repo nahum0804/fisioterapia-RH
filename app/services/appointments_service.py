@@ -376,15 +376,30 @@ class AppointmentsService:
 
         # validar slots: 1h, horario, futuro, sin choque
         now = datetime.now(timezone.utc)
-        for s in starts:
-            e = s + ONE_HOUR
-            if s <= now:
-                raise ValueError("All proposed times must be in the future")
-            if not _in_business_hours(s, e):
-                raise ValueError("Proposed times must be Mon-Fri 1pm-7pm (1h slots)")
-            if PlannerService.has_conflict(s, e):
-                raise ValueError("One of the proposed slots is not available")
 
+        for s in starts:
+            # 🔒 Asegurar que tenga zona horaria
+            if s.tzinfo is None:
+                raise ValueError("Proposed times must include timezone information")
+
+            # 🔄 Convertir todo a UTC antes de comparar
+            s_utc = s.astimezone(timezone.utc)
+            e_utc = s_utc + ONE_HOUR
+
+            # ⏳ Debe ser futuro
+            if s_utc <= now:
+                raise ValueError("All proposed times must be in the future")
+
+            # 🕐 Validar horario laboral (usamos hora local CR)
+            local_start = s_utc.astimezone().replace(tzinfo=None)
+            local_end = local_start + ONE_HOUR
+
+            if not _in_business_hours(local_start, local_end):
+                raise ValueError("Proposed times must be Mon-Fri 1pm-7pm (1h slots)")
+
+            # 📅 Validar conflicto
+            if PlannerService.has_conflict(s_utc, e_utc):
+                raise ValueError("One of the proposed slots is not available")
         appt = Appointment(
             user_id=payload["user_id"],
             comment=pack_fields(
