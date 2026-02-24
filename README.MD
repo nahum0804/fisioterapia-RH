@@ -1,63 +1,159 @@
-# Fisioterapia RH – API (Flask)
+<h1 align="center">Flask REST API</h1>
 
-API base desarrollada en **Flask** para el sistema de gestión de una clínica de fisioterapia.  
-Este proyecto establece la estructura inicial del backend, separando responsabilidades por capas y dejando listo el crecimiento hacia autenticación real, base de datos y despliegue.
+<p align="center">
+Backend desarrollado en <strong>Flask</strong> con arquitectura modular basada en Blueprints,
+orientado a la gestión clínica, planificación, autenticación y automatización de procesos.
+</p>
+
+<hr>
+
+## Descripción General
+
+Esta API está diseñada bajo un enfoque estructurado por capas (Routes → Services → Models) y utiliza **SQLAlchemy** como ORM para la gestión de base de datos PostgreSQL.
+
+Incluye:
+
+- Autenticación basada en JWT  
+- Gestión de pacientes  
+- Gestión de citas y propuestas  
+- Planificador (planner) con sincronización  
+- Registros clínicos  
+- Gestión de usuarios  
+- Chatbot con motor de intents  
+- Envío de correos automatizados  
+- CORS configurado para entornos frontend específicos  
 
 ---
 
-## Tecnologías utilizadas
+## Arquitectura del Proyecto
 
-- Python 3.10+
-- Flask
-- Python-dotenv
-- Pytest
-- Gunicorn
+app/
+│
+├── models/ # Modelos SQLAlchemy
+├── routes/ # Blueprints (controladores HTTP)
+├── services/ # Lógica de negocio
+├── utils/ # Decoradores y utilidades
+├── extensions.py # Inicialización de extensiones
+├── db.py # Configuración de base de datos
+└── init.py # Factory pattern (create_app)
+
+
+### Patrón utilizado
+
+- Application Factory (`create_app`)
+- Separación clara de responsabilidades
+- Blueprints por dominio funcional
+- Capa de servicios desacoplada de las rutas
 
 ---
 
-## Estructura del proyecto
+## Stack Tecnológico
 
-```text
-ProyectoIngeniería/
-│
-├── app/
-│   ├── __init__.py
-│   ├── config.py
-│   │
-│   ├── routes/
-│   │   ├── __init__.py
-│   │   └── auth_routes.py
-│   │
-│   ├── services/
-│   │   ├── __init__.py
-│   │   └── auth_service.py
-│   │
-│   └── models/
-│       └── __init__.py
-│
-├── tests/
-│   └── test_auth.py
-│
-├── run.py
-├── requirements.txt
-├── .env.example
-├── .gitignore
-└── README.md
-```
+- Python 3.x  
+- Flask  
+- Flask-CORS  
+- SQLAlchemy  
+- PostgreSQL  
+- psycopg2  
+- python-dotenv  
 
-## Clonar el repositorio
+---
 
-```bash
-git clone https://github.com/nahum0804/fisioterapia-RH.git
-```
+## Configuración de Entorno
 
-## Instalación y ejecución
+La aplicación utiliza variables de entorno definidas en un archivo `.env`.
 
-```bash
+### Variables requeridas
+
+DB_USER=
+DB_PASSWORD=
+DB_HOST=
+DB_PORT=
+DB_NAME=
+DATABASE_URL= (opcional)
+
+
+La conexión se construye dinámicamente como:
+
+postgresql+psycopg2://USER:PASSWORD@HOST:PORT/DB_NAME
+
+
+---
+
+## Instalación y Ejecución
+
+### 1. Clonar el repositorio
+
+git clone <repo-url>
+cd <project>
+
+
+### 2. Crear entorno virtual
+
 python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-python run.py
-```
+source venv/bin/activate # Windows: venv\Scripts\activate
 
-Puerto por defecto: **http://127.0.0.1:5000** (/api/...)
+
+### 3. Instalar dependencias
+
+pip install -r requirements.txt
+
+
+### 4. Ejecutar servidor
+
+python run.py
+
+
+Servidor por defecto:
+http://localhost:5000
+
+
+---
+
+## Endpoints Principales
+
+| Módulo        | Prefijo Base |
+|--------------|-------------|
+| Pacientes     | `/api/patients` |
+| Citas         | `/api/appointments` |
+| Planificador  | `/api/planner` |
+| Usuarios      | `/api/users` |
+| Registros     | `/api/records` |
+| Chatbot       | `/chatbot` |
+| Autenticación | Rutas directas |
+| Sitio         | Rutas directas |
+
+---
+
+## Seguridad
+
+- Autenticación basada en JWT
+- Decoradores personalizados para protección de rutas
+- Control de CORS configurado explícitamente
+- Separación de lógica de autenticación en `auth_service` y `jwt_service`
+
+---
+
+## Características Técnicas Relevantes
+
+- Manejo estructurado de propuestas de citas
+- Sincronización de planificación (`planner_sync`)
+- Motor de chatbot basado en intents JSON
+- Servicio de envío de correos desacoplado
+- Manejo de preflight OPTIONS para evitar redirecciones 308
+
+---
+
+## Buenas Prácticas Implementadas
+
+- Arquitectura limpia y modular
+- Bajo acoplamiento entre capas
+- Separación clara entre lógica HTTP y lógica de negocio
+- Uso del patrón Factory para escalabilidad
+- Configuración por entorno mediante variables seguras
+
+---
+
+<p align="center">
+Proyecto backend orientado a producción, escalable y mantenible.
+</p>
